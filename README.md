@@ -1,5 +1,7 @@
 # Ansible RHEL Patching Framework
 
+[![Ansible Validation](https://github.com/solonsah/ansible-rhel-patching/actions/workflows/ansible-validation.yml/badge.svg)](https://github.com/solonsah/ansible-rhel-patching/actions/workflows/ansible-validation.yml)
+
 A production-oriented Ansible framework for safely patching Red Hat Enterprise Linux systems through prechecks, controlled deployment batches, conditional reboot handling, post-patch validation, and documented safety controls.
 
 ## Project Purpose
