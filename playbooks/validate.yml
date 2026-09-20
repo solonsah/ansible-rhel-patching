@@ -1,0 +1,48 @@
+---
+- name: Perform read-only validation of RHEL systems
+  hosts: rhel_servers
+  become: true
+  become_method: sudo
+  become_user: root
+  gather_facts: true
+  changed_when: false
+
+  tasks:
+    - name: Test Ansible connectivity
+      ansible.builtin.ping:
+
+    - name: Collect service information
+      ansible.builtin.service_facts:
+
+    - name: Check root filesystem utilization
+      ansible.builtin.command:
+        argv:
+          - df
+          - -h
+          - /
+      register: validation_root_filesystem
+      changed_when: false
+
+    - name: Check system uptime
+      ansible.builtin.command:
+        argv:
+          - uptime
+      register: validation_uptime
+
+    - name: Display validation results
+      ansible.builtin.debug:
+        msg:
+          - "Host: {{ inventory_hostname }}"
+          - "Operating system: {{ ansible_facts.distribution }} {{ ansible_facts.distribution_version }}"
+          - "Kernel: {{ ansible_facts.kernel }}"
+          - "Uptime: {{ validation_uptime.stdout }}"
+          - "Root filesystem: {{ validation_root_filesystem.stdout_lines[-1] }}"
+
+    - name: Verify critical services
+      ansible.builtin.assert:
+        that:
+          - ansible_facts.services[item + ".service"] is defined
+          - ansible_facts.services[item + ".service"].state == "running"
+        fail_msg: "Critical service {{ item }} is missing or not running."
+        success_msg: "Critical service {{ item }} is running."
+      loop: "{{ patch_critical_services }}"

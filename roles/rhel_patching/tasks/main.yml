@@ -1,0 +1,97 @@
+---
+- name: Verify that the target is a Red Hat family system
+  ansible.builtin.assert:
+    that:
+      - ansible_facts.os_family == "RedHat"
+      - ansible_facts.pkg_mgr in ["dnf", "yum"]
+    fail_msg: >-
+      This role supports Red Hat family systems using DNF or YUM.
+      Detected OS family: {{ ansible_facts.os_family }}
+      Package manager: {{ ansible_facts.pkg_mgr }}
+    success_msg: >-
+      Supported system detected:
+      {{ ansible_facts.distribution }}
+      {{ ansible_facts.distribution_version }}
+
+- name: Check available space on the root filesystem
+  ansible.builtin.command:
+    argv:
+      - df
+      - -Pm
+      - /
+  register: patch_root_filesystem
+  changed_when: false
+
+- name: Verify that the root filesystem has at least 1 GB available
+  ansible.builtin.assert:
+    that:
+      - patch_root_filesystem.stdout_lines[-1].split()[3] | int >= 1024
+    fail_msg: >-
+      The root filesystem does not have the required 1 GB of free space.
+      Patching has been stopped for safety.
+    success_msg: The root filesystem has sufficient free space.
+
+- name: Update packages with DNF
+  ansible.builtin.dnf:
+    name: "*"
+    state: latest
+    update_cache: true
+    security: "{{ patch_security_only }}"
+    exclude: "{{ patch_exclude_packages }}"
+  register: patch_dnf_result
+  when: ansible_facts.pkg_mgr == "dnf"
+
+- name: Update packages with YUM
+  ansible.builtin.yum:
+    name: "*"
+    state: latest
+    update_cache: true
+    security: "{{ patch_security_only }}"
+    exclude: "{{ patch_exclude_packages }}"
+  register: patch_yum_result
+  when: ansible_facts.pkg_mgr == "yum"
+
+- name: Check whether the needs-restarting command is installed
+  ansible.builtin.stat:
+    path: /usr/bin/needs-restarting
+  register: patch_needs_restarting
+
+- name: Check whether a reboot is required
+  ansible.builtin.command:
+    argv:
+      - /usr/bin/needs-restarting
+      - -r
+  register: patch_reboot_check
+  changed_when: false
+  failed_when: patch_reboot_check.rc not in [0, 1]
+  when: patch_needs_restarting.stat.exists
+
+- name: Reboot when required and authorized
+  ansible.builtin.reboot:
+    msg: Reboot initiated by the Ansible RHEL patching framework
+    reboot_timeout: "{{ patch_reboot_timeout }}"
+    connect_timeout: 10
+    post_reboot_delay: 20
+  when:
+    - patch_reboot_if_required | bool
+    - patch_needs_restarting.stat.exists
+    - patch_reboot_check.rc == 1
+    - not ansible_check_mode
+
+- name: Collect service information after patching
+  ansible.builtin.service_facts:
+
+- name: Validate critical services
+  ansible.builtin.assert:
+    that:
+      - ansible_facts.services[item + ".service"] is defined
+      - ansible_facts.services[item + ".service"].state == "running"
+    fail_msg: "Critical service {{ item }} is missing or not running."
+    success_msg: "Critical service {{ item }} is running."
+  loop: "{{ patch_critical_services }}"
+
+- name: Display patching completion message
+  ansible.builtin.debug:
+    msg: >-
+      Patching and post-patch validation completed for
+      {{ inventory_hostname }}.

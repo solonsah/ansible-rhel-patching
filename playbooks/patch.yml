@@ -1,0 +1,32 @@
+---
+- name: Patch RHEL systems in controlled batches
+  hosts: rhel_servers
+  become: true
+  gather_facts: true
+  serial: "{{ patch_batch_size | default('25%') }}"
+  max_fail_percentage: 0
+
+  pre_tasks:
+    - name: Confirm connectivity before patching
+      ansible.builtin.ping:
+
+    - name: Display the target system
+      ansible.builtin.debug:
+        msg: >-
+          Preparing to patch {{ inventory_hostname }}
+          running {{ ansible_facts.distribution }}
+          {{ ansible_facts.distribution_version }}.
+
+  roles:
+    - role: rhel_patching
+
+  post_tasks:
+    - name: Display the running kernel
+      ansible.builtin.debug:
+        msg: "Running kernel: {{ ansible_facts.kernel }}"
+
+    - name: Confirm successful completion
+      ansible.builtin.debug:
+        msg: >-
+          The patching workflow completed successfully for
+          {{ inventory_hostname }}.

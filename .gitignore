@@ -1,0 +1,57 @@
+# Credentials and secrets
+.env
+.env.*
+*.secret
+secrets/
+credentials/
+vault-password*
+*.vault
+
+# SSH keys
+id_rsa
+id_rsa.pub
+id_ed25519
+id_ed25519.pub
+*.pem
+*.key
+*.p12
+*.pfx
+
+# Certificates and keystores
+*.jks
+*.keystore
+
+# Ansible temporary files
+*.retry
+.ansible/
+ansible.log
+facts-cache/
+
+# Logs, reports and output
+*.log
+logs/
+output/
+reports/private/
+
+# Temporary and backup files
+*.tmp
+*.bak
+*.swp
+*~
+
+# Editors and operating systems
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Private and environment-specific inventories
+inventories/private/
+inventories/production/
+inventory.ini

@@ -1,0 +1,7 @@
+---
+patch_security_only: false
+patch_reboot_if_required: true
+patch_reboot_timeout: 900
+patch_exclude_packages: []
+patch_critical_services:
+  - sshd
