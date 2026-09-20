@@ -1,0 +1,40 @@
+---
+name: Ansible Validation
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  syntax-check:
+    name: Check Ansible syntax
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Install Ansible
+        run: python3 -m pip install ansible-core
+
+      - name: Validate patching playbook
+        run: >
+          ansible-playbook
+          -i inventories/lab/hosts.yml
+          --syntax-check
+          playbooks/patch.yml
+
+      - name: Validate verification playbook
+        run: >
+          ansible-playbook
+          -i inventories/lab/hosts.yml
+          --syntax-check
+          playbooks/validate.yml
